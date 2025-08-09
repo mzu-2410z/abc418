@@ -1,37 +1,62 @@
 import sys
 import math
-import itertools
+from collections import defaultdict
 
-input = sys.stdin.readline
+def slope(p1, p2):
+    """
+    Calculates the slope of the line between two points and returns it as a
+    simplified fraction in a canonical form.
+    """
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
 
-def slope(p, q):
-    dx = q[0] - p[0]
-    dy = q[1] - p[1]
     if dx == 0:
         return ('inf', 0)
-    g = math.gcd(dx, dy)
-    return (dy // g, dx // g)
+    
+    common_divisor = math.gcd(abs(dx), abs(dy))
+    dy //= common_divisor
+    dx //= common_divisor
+    
+    # Ensure a canonical form where dx is always positive
+    if dx < 0:
+        dy *= -1
+        dx *= -1
+        
+    return (dy, dx)
 
-def parallel(p, q, r, s):
-    return slope(p, q) == slope(r, s)
+def solve():
+    input = sys.stdin.readline
+    N = int(input())
+    pts = [tuple(map(int, input().split())) for _ in range(N)]
 
-N = int(input())
-pts = [tuple(map(int, input().split())) for _ in range(N)]
+    # Step 1: Count pairs of parallel line segments
+    slopes_count = defaultdict(int)
+    for i in range(N):
+        for j in range(i + 1, N):
+            s = slope(pts[i], pts[j])
+            slopes_count[s] += 1
+    
+    total_parallel_pairs = 0
+    for count in slopes_count.values():
+        if count >= 2:
+            total_parallel_pairs += count * (count - 1) // 2
 
-ans = 0
-for quad in itertools.combinations(range(N), 4):
-    points = [pts[i] for i in quad]
-    found = False
-    # Try all cyclic permutations (fix first point, permute the rest)
-    for perm in itertools.permutations(points):
-        A, B, C, D = perm
-        # Check opposite sides: AB//CD and BC//DA
-        ab_cd = parallel(A, B, C, D)
-        bc_da = parallel(B, C, D, A)
-        if ab_cd ^ bc_da:  # exactly one pair parallel
-            found = True
-            break
-    if found:
-        ans += 1
+    # Step 2: Count parallelograms using midpoints
+    midpoints_count = defaultdict(int)
+    for i in range(N):
+        for j in range(i + 1, N):
+            # Use sums to represent midpoints and avoid floating-point issues
+            mid_x = pts[i][0] + pts[j][0]
+            mid_y = pts[i][1] + pts[j][1]
+            midpoints_count[(mid_x, mid_y)] += 1
+    
+    total_parallelograms = 0
+    for count in midpoints_count.values():
+        if count >= 2:
+            total_parallelograms += count * (count - 1) // 2
+    
+    # Step 3: Calculate the final answer by correcting for double-counting
+    ans = total_parallel_pairs - total_parallelograms
+    print(ans)
 
-print(ans)
+solve()
